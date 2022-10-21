@@ -47,6 +47,14 @@ Project Organization
         └── visualization  <- Scripts to create exploratory and results oriented visualizations
             └── visualize.py
 
+--------
+## Sign Language Recognition
+
+### Data Preprocessing
+
+1. Download Phoenix-14T dataset and put it under `data/raw/`
+
+2. In the project root folder, run cmd `python src/data/dataset_preprocess.py --process-image --multiprocessing`
 
 --------
 
