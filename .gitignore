@@ -78,9 +78,8 @@ target/
 .ipynb_checkpoints/
 
 # exclude data from source control by default
-data/raw/*
-data/interim/*
-data/processed/*
+data/SLR/raw/*
+data/SLR/processed/*
 
 # Mac OS-specific storage files
 .DS_Store
@@ -91,3 +90,9 @@ data/processed/*
 
 # Mypy cache
 .mypy_cache/
+
+# models
+models/**/*.pt
+
+# output
+output/SLR/*

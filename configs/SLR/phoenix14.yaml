@@ -1,0 +1,5 @@
+dataset_root: ./data/SLR/processed/phoenix2014/phoenix-2014-multisigner
+dict_path: ./data/SLR/processed/phoenix2014/gloss_dict.npy
+evaluation_dir: ./src/SLR/models/evaluation
+evaluation_prefix: groundtruth
+label_dir: ./data/SLR/processed/phoenix2014
