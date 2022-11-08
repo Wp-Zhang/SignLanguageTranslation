@@ -35,7 +35,7 @@ feeder_args:
   num_gloss: -1
   drop_ratio: 1.0
 
-model: slr_network.SLRModel
+model: src.SLR.models.SLRModel
 decode_mode: beam
 model_args:
   num_classes: 1296

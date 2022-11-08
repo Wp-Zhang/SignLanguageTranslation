@@ -102,7 +102,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--save-root",
         type=str,
-        default="./data/SLR/processed/phoenix2014/",
+        default="./data/SLR/processed/phoenix2014",
         help="path to the dataset",
     )
     parser.add_argument(
@@ -166,6 +166,7 @@ if __name__ == "__main__":
     save_dict = {}
     for idx, (key, value) in enumerate(sign_dict):
         save_dict[key] = [idx + 1, value]
+    print(f"{args.save_root}/gloss_dict.npy")
     np.save(f"{args.save_root}/gloss_dict.npy", save_dict)
 
 

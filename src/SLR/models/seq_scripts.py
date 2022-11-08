@@ -72,6 +72,7 @@ def seq_eval(
             output_file="output-hypothesis-{}-conv.ctm".format(mode),
             evaluate_dir=cfg.dataset_info["evaluation_dir"],
             evaluate_prefix=cfg.dataset_info["evaluation_prefix"],
+            label_dir=cfg.dataset_info["label_dir"],
             output_dir="epoch_{}_result/".format(epoch),
             python_evaluate=python_eval,
         )
@@ -81,6 +82,7 @@ def seq_eval(
             output_file="output-hypothesis-{}.ctm".format(mode),
             evaluate_dir=cfg.dataset_info["evaluation_dir"],
             evaluate_prefix=cfg.dataset_info["evaluation_prefix"],
+            label_dir=cfg.dataset_info["label_dir"],
             output_dir="epoch_{}_result/".format(epoch),
             python_evaluate=python_eval,
             triplet=True,

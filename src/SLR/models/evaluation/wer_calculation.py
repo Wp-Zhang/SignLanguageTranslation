@@ -6,6 +6,7 @@ def evaluate(
     prefix="./",
     mode="dev",
     evaluate_dir=None,
+    label_dir=None,
     evaluate_prefix=None,
     output_file=None,
     output_dir=None,
@@ -21,18 +22,18 @@ def evaluate(
         f"bash {evaluate_dir}/preprocess.sh {prefix + output_file} {prefix}tmp.ctm {prefix}tmp2.ctm"
     )
     os.system(
-        f"cat {evaluate_dir}/{evaluate_prefix}-{mode}.stm | sort  -k1,1 > {prefix}tmp.stm"
+        f"cat {label_dir}/{evaluate_prefix}-{mode}.stm | sort  -k1,1 > {prefix}tmp.stm"
     )
     # tmp2.ctm: prediction result; tmp.stm: ground-truth result
     os.system(f"python {evaluate_dir}/mergectmstm.py {prefix}tmp2.ctm {prefix}tmp.stm")
     os.system(f"cp {prefix}tmp2.ctm {prefix}out.{output_file}")
     if python_evaluate:
         ret = wer_calculation(
-            f"{evaluate_dir}/{evaluate_prefix}-{mode}.stm", f"{prefix}out.{output_file}"
+            f"{label_dir}/{evaluate_prefix}-{mode}.stm", f"{prefix}out.{output_file}"
         )
         if triplet:
             wer_calculation(
-                f"{evaluate_dir}/{evaluate_prefix}-{mode}.stm",
+                f"{label_dir}/{evaluate_prefix}-{mode}.stm",
                 f"{prefix}out.{output_file}",
                 f"{prefix}out.{output_file}".replace(".ctm", "-conv.ctm"),
             )

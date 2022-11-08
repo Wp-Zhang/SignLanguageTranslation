@@ -1,4 +1,7 @@
 import os
+import sys
+
+sys.path.append("./")
 
 os.environ["CUDA_DEVICE_ORDER"] = "PCI_BUS_ID"
 import yaml
@@ -10,10 +13,10 @@ import torch.nn as nn
 from collections import OrderedDict
 
 faulthandler.enable()
-from .models.modules.sync_batchnorm import convert_model
-from .models.seq_scripts import seq_train, seq_eval, seq_feature_generation
-from .models.utils import RandomState, GpuDataParallel, Recorder, get_parser, pack_code
-from .models.optimizer import Optimizer
+from models.modules.sync_batchnorm import convert_model
+from models.seq_scripts import seq_train, seq_eval, seq_feature_generation
+from models.utils import RandomState, GpuDataParallel, Recorder, get_parser, pack_code
+from models.optimizer import Optimizer
 
 
 class Processor:

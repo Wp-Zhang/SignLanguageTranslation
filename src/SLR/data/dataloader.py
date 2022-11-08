@@ -16,7 +16,7 @@ import numpy as np
 from PIL import Image
 import torch.utils.data as data
 import matplotlib.pyplot as plt
-import video_augmentation
+from .video_augmentation import *
 from torch.utils.data.sampler import Sampler
 
 sys.path.append("..")
@@ -40,8 +40,10 @@ class BaseFeeder(data.Dataset):
         self.data_type = datatype
         self.feat_prefix = f"{prefix}/features/fullFrame-256x256px/{mode}"
         self.transform_mode = "train" if transform_mode else "test"
+
+        root_dir = "/".join(prefix.split("/")[:-1])
         self.inputs_list = np.load(
-            f"./preprocess/phoenix2014/{mode}_info.npy", allow_pickle=True
+            f"{root_dir}/{mode}_info.npy", allow_pickle=True
         ).item()
         # self.inputs_list = np.load(f"{prefix}/annotations/manual/{mode}.corpus.npy", allow_pickle=True).item()
         # self.inputs_list = np.load(f"{prefix}/annotations/manual/{mode}.corpus.npy", allow_pickle=True).item()
@@ -110,24 +112,24 @@ class BaseFeeder(data.Dataset):
     def transform(self):
         if self.transform_mode == "train":
             print("Apply training transform.")
-            return video_augmentation.Compose(
+            return Compose(
                 [
-                    # video_augmentation.CenterCrop(224),
-                    # video_augmentation.WERAugment('/lustre/wangtao/current_exp/exp/baseline/boundary.npy'),
-                    video_augmentation.RandomCrop(224),
-                    video_augmentation.RandomHorizontalFlip(0.5),
-                    video_augmentation.ToTensor(),
-                    video_augmentation.TemporalRescale(0.2),
-                    # video_augmentation.Resize(0.5),
+                    # CenterCrop(224),
+                    # WERAugment('/lustre/wangtao/current_exp/exp/baseline/boundary.npy'),
+                    RandomCrop(224),
+                    RandomHorizontalFlip(0.5),
+                    ToTensor(),
+                    TemporalRescale(0.2),
+                    # Resize(0.5),
                 ]
             )
         else:
             print("Apply testing transform.")
-            return video_augmentation.Compose(
+            return Compose(
                 [
-                    video_augmentation.CenterCrop(224),
-                    # video_augmentation.Resize(0.5),
-                    video_augmentation.ToTensor(),
+                    CenterCrop(224),
+                    # Resize(0.5),
+                    ToTensor(),
                 ]
             )
 
