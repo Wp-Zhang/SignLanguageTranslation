@@ -90,3 +90,9 @@ data/SLR/processed/*
 
 # Mypy cache
 .mypy_cache/
+
+# models
+models/**/*.pt
+
+# output
+output/SLR/*
