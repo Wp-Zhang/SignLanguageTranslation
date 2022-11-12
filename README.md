@@ -41,16 +41,23 @@ Project Organization
 --------
 ## Sign Language Recognition
 
+### Environment Setup
+
+Install `ctcdecode`
+
+1. `git clone https://github.com/parlance/ctcdecode.git`
+2. `cd ctcdecode && pip install .`
+
 ### Data Preprocessing
 
-1. Download **Phoenix-14** dataset and put it under `data/SLR/raw/`
+1. Download **Phoenix-14** dataset and extract it to `data/SLR/raw/`, rename the data folder from `phoenix2014-release` to `phoenix2014`
 
 2. In the project root folder, run cmd `python src/SLR/data/preprocess.py --process-image --multiprocessing`
 
 
 ### Download Model Weights
 
-Download pre-trained model weights, see [here](https://github.com/ycmin95/VAC_CSLR).
+Download pre-trained model weights, see [here](https://github.com/ycmin95/VAC_CSLR). Put the downloaded model weights under `models/SLR/`
 
 
 ### Evaluation
