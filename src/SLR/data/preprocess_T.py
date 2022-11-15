@@ -101,7 +101,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--dataset-root",
         type=str,
-        default="./data/SLR/raw/phoenix2014-T/phoenix-2014-multisigner",
+        default="./data/SLR/raw/phoenix2014-T/PHOENIX-2014-T",
         help="path to the dataset",
     )
     parser.add_argument(
@@ -113,7 +113,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--annotation-prefix",
         type=str,
-        default="annotations/manual/{}.corpus.csv",
+        default="annotations/manual/PHOENIX-2014-T.{}.corpus.csv",
         help="annotation prefix",
     )
     parser.add_argument(
