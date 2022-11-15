@@ -78,9 +78,10 @@ class BaseFeeder(data.Dataset):
         # load file info
         fi = self.inputs_list[index]
         img_folder = os.path.join(
-            self.prefix, "features/fullFrame-256x256px/" + fi["folder"]
+            self.prefix, "features/fullFrame-256x256px/" + fi["folder"].replace('/1/','/')
         )
         img_list = sorted(glob.glob(img_folder))
+        
         label_list = []
         for phase in fi["label"].split(" "):
             if phase == "":
