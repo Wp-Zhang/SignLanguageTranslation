@@ -5,7 +5,8 @@ import torchvision.models as models
 from .modules import Decoder, SeqKD, BiLSTMLayer, TemporalConv
 from .evaluation import evaluate
 from pytorch_lightning import LightningModule
-import numpy as np
+import os
+import sys
 
 
 class Identity(nn.Module):
@@ -42,7 +43,7 @@ class SLRModel(nn.Module):
         super(SLRModel, self).__init__()
 
         self.num_classes = num_classes
-        self.conv2d = getattr(models, c2d_type)(pretrained=True)
+        self.conv2d = getattr(models, c2d_type)(weights=True)
         self.conv2d.fc = Identity()
         self.conv1d = TemporalConv(
             input_size=512,
@@ -160,6 +161,10 @@ class SLR_Lightning(LightningModule):
         nesterov,
         loss_weights,
         gloss_dict,
+        # * Evaluation args
+        eval_script_dir,
+        eval_output_dir,
+        eval_label_dir,
     ):
         super().__init__()
 
@@ -189,6 +194,11 @@ class SLR_Lightning(LightningModule):
         self.start_epoch = start_epoch
         self.nesterov = nesterov
         self.loss_weights = loss_weights
+
+        # * Evaluation cfg
+        self.eval_script_dir = eval_script_dir
+        self.eval_output_dir = eval_output_dir
+        self.eval_label_dir = eval_label_dir
 
     def calc_loss(self, ret_dict, label, label_lgt):
         loss = 0
@@ -225,50 +235,95 @@ class SLR_Lightning(LightningModule):
         vid, vid_lgt, label, label_lgt, info = batch
         ret_dict = self.model(vid, vid_lgt, label, label_lgt)
         loss = self.calc_loss(ret_dict, label, label_lgt)
-        self.log("train_loss", loss)
+        self.log("train_loss", loss, batch_size=vid.size(0))
         return loss
 
-    def evaluate(self, batch, stage=None):
+    def eval_step(self, batch, stage):
         vid, vid_lgt, label, label_lgt, info = batch
         ret_dict = self.model(vid, vid_lgt, label, label_lgt)
 
-        # try:
-        #     conv_ret = evaluate(
-        #         prefix=self.eval_cfg.work_dir,
-        #         mode=stage,
-        #         output_file="output-hypothesis-{}-conv.ctm".format(stage),
-        #         evaluate_dir=self.eval_cfg.evaluation_dir,
-        #         evaluate_prefix=self.eval_cfg.evaluation_prefix,
-        #         label_dir=self.eval_cfg.label_dir,
-        #         output_dir="result/",
-        #         python_evaluate=self.eval_cfg.python_eval,
-        #     )
-        #     lstm_ret = evaluate(
-        #         prefix=self.eval_cfgwork_dir,
-        #         mode=stage,
-        #         output_file="output-hypothesis-{}.ctm".format(stage),
-        #         evaluate_dir=self.eval_cfg.evaluation_dir,
-        #         evaluate_prefix=self.eval_cfg.evaluation_prefix,
-        #         label_dir=self.eval_cfg.label_dir,
-        #         output_dir="result/",
-        #         python_evaluate=self.eval_cfg.python_eval,
-        #         triplet=True,
-        #     )
-        # except:
-        #     self.log("Unexpected error:", sys.exc_info()[0])
-        # finally:
-        #     pass
-
         loss = self.calc_loss(ret_dict, label, label_lgt)
 
-        if stage:
-            self.log(f"{stage}_loss", loss, prog_bar=True)
+        self.log(f"{stage}_loss", loss, prog_bar=True, batch_size=vid.size(0))
+
+        info = [filename.split("|")[0] for filename in info]
+        ret_dict["info"] = info
+        return ret_dict
 
     def validation_step(self, batch, batch_idx):
-        self.evaluate(batch, "dev")
+        return self.eval_step(batch, "dev")
 
     def test_step(self, batch, batch_idx):
-        self.evaluate(batch, "test")
+        return self.eval_step(batch, "test")
+
+    def eval_end(self, outputs, stage):
+        total_info = []
+        total_sent = []
+        total_conv_sent = []
+        for out in outputs:
+            total_info.extend(out["info"])
+            total_sent.extend(out["recognized_sents"])
+            total_conv_sent.extend(out["conv_sents"])
+
+        try:
+
+            def write2file(path, info, output):
+                filereader = open(path, "w")
+                for sample_idx, sample in enumerate(output):
+                    for word_idx, word in enumerate(sample):
+                        filereader.writelines(
+                            "{} 1 {:.2f} {:.2f} {}\n".format(
+                                info[sample_idx],
+                                word_idx * 1.0 / 100,
+                                (word_idx + 1) * 1.0 / 100,
+                                word[0],
+                            )
+                        )
+
+            if not os.path.exists(self.eval_output_dir):
+                os.makedirs(self.eval_output_dir)
+
+            write2file(
+                os.path.join(self.eval_output_dir, f"out-hypothesis-{stage}.ctm"),
+                total_info,
+                total_sent,
+            )
+            write2file(
+                os.path.join(self.eval_output_dir, f"out-hypothesis-{stage}-conv.ctm"),
+                total_info,
+                total_conv_sent,
+            )
+            conv_ret = evaluate(
+                prefix=self.eval_output_dir,
+                mode=stage,
+                output_file="out-hypothesis-{}-conv.ctm".format(stage),
+                evaluate_dir=self.eval_script_dir,
+                evaluate_prefix="groundtruth",
+                label_dir=self.eval_label_dir,
+                output_dir="result/",
+                python_evaluate=True,
+            )
+            lstm_ret = evaluate(
+                prefix=self.eval_output_dir,
+                mode=stage,
+                output_file="out-hypothesis-{}.ctm".format(stage),
+                evaluate_dir=self.eval_script_dir,
+                evaluate_prefix="groundtruth",
+                label_dir=self.eval_label_dir,
+                output_dir="result/",
+                python_evaluate=True,
+                triplet=True,
+            )
+        except:
+            self.log("Unexpected error:", sys.exc_info()[0])
+        finally:
+            pass
+
+    def validation_epoch_end(self, outputs):
+        self.eval_end(outputs, "dev")
+
+    def test_epoch_end(self, outputs):
+        self.eval_end(outputs, "test")
 
     def configure_optimizers(self):
         if self.optimizer == "SGD":

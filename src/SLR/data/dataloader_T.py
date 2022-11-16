@@ -130,13 +130,14 @@ class VideoDataModule(LightningDataModule):
         self.datasets = {"fit": None, "validate": None, "test": None}
 
     def setup(self, stage=None) -> None:
-        if stage == "fit":
-            trn_inputs_list = np.load(
-                f"{self.info_dir}/train_info.npy", allow_pickle=True
-            ).item()
-            self.datasets["fit"] = VideoDataset(
-                self.gloss_dict, trn_inputs_list, self.img_dir, "train"
-            )
+        if stage == "fit" or stage == "validate":
+            if stage == "fit":
+                trn_inputs_list = np.load(
+                    f"{self.info_dir}/train_info.npy", allow_pickle=True
+                ).item()
+                self.datasets["fit"] = VideoDataset(
+                    self.gloss_dict, trn_inputs_list, self.img_dir, "train"
+                )
 
             val_inputs_list = np.load(
                 f"{self.info_dir}/dev_info.npy", allow_pickle=True
