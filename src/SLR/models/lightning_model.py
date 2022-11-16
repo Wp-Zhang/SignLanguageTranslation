@@ -33,7 +33,6 @@ class SLRModel(nn.Module):
         self,
         num_classes,
         c2d_type,
-        c2d_weights_name,
         conv_type,
         use_bn=False,
         hidden_size=1024,
@@ -44,7 +43,7 @@ class SLRModel(nn.Module):
         super(SLRModel, self).__init__()
 
         self.num_classes = num_classes
-        self.conv2d = getattr(models, c2d_type)(weights=c2d_weights_name)
+        self.conv2d = getattr(models, c2d_type)(pretrained=True)
         self.conv2d.fc = Identity()
         self.conv1d = TemporalConv(
             input_size=512,
@@ -70,7 +69,7 @@ class SLRModel(nn.Module):
             self.conv1d.fc = nn.Linear(hidden_size, self.num_classes)
         if share_classifier:
             self.conv1d.fc = self.classifier
-        self.register_backward_hook(self.backward_hook)
+        self.register_full_backward_hook(self.backward_hook)
 
     def backward_hook(self, module, grad_input, grad_output):
         for g in grad_input:
@@ -147,7 +146,6 @@ class SLR_Lightning(LightningModule):
         # * Model args
         num_classes,
         c2d_type,
-        c2d_weights_name,
         conv_type,
         use_bn,
         hidden_size,
@@ -174,7 +172,6 @@ class SLR_Lightning(LightningModule):
         self.model = SLRModel(
             num_classes,
             c2d_type,
-            c2d_weights_name,
             conv_type,
             use_bn,
             hidden_size,
@@ -247,7 +244,9 @@ class SLR_Lightning(LightningModule):
 
         loss = self.calc_loss(ret_dict, label, label_lgt)
 
-        self.log(f"{stage}_loss", loss, prog_bar=True, batch_size=vid.size(0))
+        self.log(
+            f"{stage}_loss", loss, prog_bar=True, batch_size=vid.size(0), sync_dist=True
+        )
 
         info = [filename.split("|")[0] for filename in info]
         ret_dict["info"] = info
@@ -318,12 +317,9 @@ class SLR_Lightning(LightningModule):
                 triplet=True,
             )
         except:
-            self.log("Unexpected error:", sys.exc_info()[0])
+            self.log("Unexpected error:", sys.exc_info()[0], sync_dist=True)
 
-        return {
-            "log": {f"{stage}_WER": conv_ret},
-            "progress_bar": {"{stage}_WER": conv_ret},
-        }
+        self.log(f"{stage}_WER", conv_ret, prog_bar=True, sync_dist=True, on_epoch=True)
 
     def validation_epoch_end(self, outputs):
         return self.eval_end(outputs, "dev")
