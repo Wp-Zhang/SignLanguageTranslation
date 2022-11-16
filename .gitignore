@@ -96,3 +96,4 @@ models/**/*.pt
 
 # output
 output/SLR/*
+lightning_logs
