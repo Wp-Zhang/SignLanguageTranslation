@@ -17,7 +17,7 @@ def evaluate(
     TODO  change file save path
     """
     sclite_path = "./software/sclite"
-    print(os.getcwd())
+    # print(os.getcwd())
     os.system(
         f"bash {evaluate_dir}/preprocess.sh {prefix + output_file} {prefix}tmp.ctm {prefix}tmp2.ctm"
     )
