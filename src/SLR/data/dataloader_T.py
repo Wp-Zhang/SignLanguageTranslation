@@ -35,7 +35,7 @@ class VideoDataset(Dataset):
 
     def __getitem__(self, idx):
         fi = self.inputs_list[idx]
-        img_folder = os.path.join(self.img_dir, fi["folder"])
+        img_folder = os.path.join(self.img_dir, fi["folder"].replace("/1/", "/"))
         img_list = sorted(glob.glob(img_folder))
 
         label_list = []
@@ -154,7 +154,6 @@ class VideoDataModule(LightningDataModule):
             )
 
     def train_dataloader(self):
-        print("Trainset")
         dataset = self.datasets["fit"]
         return DataLoader(
             dataset=self.datasets["fit"],
@@ -166,7 +165,6 @@ class VideoDataModule(LightningDataModule):
         )
 
     def val_dataloader(self):
-        print("Valset")
         dataset = self.datasets["validate"]
         return DataLoader(
             dataset=self.datasets["validate"],
@@ -178,7 +176,6 @@ class VideoDataModule(LightningDataModule):
         )
 
     def test_dataloader(self):
-        print("Testset")
         dataset = self.datasets["test"]
         return DataLoader(
             dataset=self.datasets["test"],
