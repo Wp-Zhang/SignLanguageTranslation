@@ -33,6 +33,7 @@ class SLRModel(nn.Module):
         self,
         num_classes,
         c2d_type,
+        c2d_weights_name,
         conv_type,
         use_bn=False,
         hidden_size=1024,
@@ -43,7 +44,7 @@ class SLRModel(nn.Module):
         super(SLRModel, self).__init__()
 
         self.num_classes = num_classes
-        self.conv2d = getattr(models, c2d_type)(weights=True)
+        self.conv2d = getattr(models, c2d_type)(weights=c2d_weights_name)
         self.conv2d.fc = Identity()
         self.conv1d = TemporalConv(
             input_size=512,
@@ -146,6 +147,7 @@ class SLR_Lightning(LightningModule):
         # * Model args
         num_classes,
         c2d_type,
+        c2d_weights_name,
         conv_type,
         use_bn,
         hidden_size,
@@ -172,6 +174,7 @@ class SLR_Lightning(LightningModule):
         self.model = SLRModel(
             num_classes,
             c2d_type,
+            c2d_weights_name,
             conv_type,
             use_bn,
             hidden_size,
@@ -316,14 +319,17 @@ class SLR_Lightning(LightningModule):
             )
         except:
             self.log("Unexpected error:", sys.exc_info()[0])
-        finally:
-            pass
+
+        return {
+            "log": {f"{stage}_WER": conv_ret},
+            "progress_bar": {"{stage}_WER": conv_ret},
+        }
 
     def validation_epoch_end(self, outputs):
-        self.eval_end(outputs, "dev")
+        return self.eval_end(outputs, "dev")
 
     def test_epoch_end(self, outputs):
-        self.eval_end(outputs, "test")
+        return self.eval_end(outputs, "test")
 
     def configure_optimizers(self):
         if self.optimizer == "SGD":
