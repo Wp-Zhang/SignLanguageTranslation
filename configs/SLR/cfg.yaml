@@ -1,27 +1,7 @@
-# phase: train
-# dataset: phoenix14-T
-# # dataset: phoenix14-si5
-# num_epoch: 40
-# work_dir: ./output/SLR/T_sota/
-# batch_size: 2
-# random_seed: 0
-# test_batch_size: 2
-# num_worker: 10
-# device: 0,1
-# log_interval: 50
-# eval_interval: 1
-# save_interval: 5
-# evaluate_tool: python # sclite
-
-dataset_args:
-  info_dir: "./data/SLR/processed/phoenix2014"
-  img_dir: "./data/SLR/processed/phoenix2014/phoenix-2014-multisigner/features/fullFrame-256x256px"
-  batch_size: 2
-  num_worker: 10
-
 model_args:
   num_classes: 1296
   c2d_type: resnet18
+  c2d_weights_name: ResNet18_Weights.IMAGENET1K_V1
   conv_type: 2
   use_bn: True
   hidden_size: 1024
@@ -47,3 +27,15 @@ trainer_args:
   accelerator: "gpu"
   devices: 1
   max_epochs: 40
+  ckpt_dir: output/SLR/lightning_ckpt
+
+evaluate_args:
+  eval_script_dir: src/SLR/models/evaluation
+  eval_output_dir: output/SLR/eval_result/
+  eval_label_dir: data/SLR/processed/phoenix2014
+
+dataset_args:
+  info_dir: data/SLR/processed/phoenix2014
+  img_dir: data/SLR/processed/phoenix2014/phoenix-2014-multisigner/features/fullFrame-256x256px
+  batch_size: 2
+  num_worker: 10
