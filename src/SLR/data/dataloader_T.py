@@ -4,36 +4,24 @@ import glob
 import torch
 import numpy as np
 
-from torch.utils.data import Dataset
+from torch.utils.data import Dataset, DataLoader
+from pytorch_lightning import LightningDataModule
 from .video_augmentation import *
-
 import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 class VideoDataset(Dataset):
-    def __init__(
-        self,
-        info_dir,
-        img_dir,
-        num_gloss=-1,
-        mode="train",
-        transform_mode=True,
-    ):
+    def __init__(self, gloss_dict, inputs_list, img_dir, mode="train"):
         self.img_dir = img_dir
 
         self.mode = mode
-        self.ng = num_gloss
-        self.gloss_dict = np.load(
-            f"{info_dir}/gloss_dict.npy", allow_pickle=True
-        ).item()
+        self.gloss_dict = gloss_dict
 
-        self.inputs_list = np.load(
-            f"{info_dir}/{mode}_info.npy", allow_pickle=True
-        ).item()
+        self.inputs_list = inputs_list
 
-        if transform_mode == "train":
+        if mode == "train":
             self.transform = Compose(
                 [
                     RandomCrop(224),
@@ -126,3 +114,76 @@ class VideoDataset(Dataset):
     #     split_time = time.time() - self.cur_time
     #     self.record_time()
     #     return split_time
+
+
+class VideoDataModule(LightningDataModule):
+    def __init__(self, info_dir, img_dir, gloss_dict, batch_size, num_worker=1, **args):
+        super().__init__()
+
+        self.info_dir = info_dir
+        self.img_dir = img_dir
+
+        self.batch_size = batch_size
+        self.num_worker = num_worker
+
+        self.gloss_dict = gloss_dict
+        self.datasets = {"fit": None, "validate": None, "test": None}
+
+    def setup(self, stage=None) -> None:
+        if stage == "fit":
+            trn_inputs_list = np.load(
+                f"{self.info_dir}/train_info.npy", allow_pickle=True
+            ).item()
+            self.datasets["fit"] = VideoDataset(
+                self.gloss_dict, trn_inputs_list, self.img_dir, "train"
+            )
+
+            val_inputs_list = np.load(
+                f"{self.info_dir}/dev_info.npy", allow_pickle=True
+            ).item()
+            self.datasets["validate"] = VideoDataset(
+                self.gloss_dict, val_inputs_list, self.img_dir, "dev"
+            )
+        elif stage == "test":
+            inputs_list = np.load(
+                f"{self.info_dir}/test_info.npy", allow_pickle=True
+            ).item()
+            self.datasets["test"] = VideoDataset(
+                self.gloss_dict, inputs_list, self.img_dir, "test"
+            )
+
+    def train_dataloader(self):
+        print("Trainset")
+        dataset = self.datasets["fit"]
+        return DataLoader(
+            dataset=self.datasets["fit"],
+            batch_size=self.batch_size,
+            shuffle=True,
+            drop_last=True,
+            num_workers=self.num_worker,
+            collate_fn=dataset.collate_fn,
+        )
+
+    def val_dataloader(self):
+        print("Valset")
+        dataset = self.datasets["validate"]
+        return DataLoader(
+            dataset=self.datasets["validate"],
+            batch_size=self.batch_size,
+            shuffle=False,
+            drop_last=False,
+            num_workers=self.num_worker,
+            collate_fn=dataset.collate_fn,
+        )
+
+    def test_dataloader(self):
+        print("Testset")
+        dataset = self.datasets["test"]
+        return DataLoader(
+            dataset=self.datasets["test"],
+            batch_size=self.batch_size,
+            shuffle=False,
+            drop_last=False,
+            num_workers=self.num_worker,
+            collate_fn=dataset.collate_fn,
+        )

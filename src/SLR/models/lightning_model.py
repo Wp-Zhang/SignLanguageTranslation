@@ -140,22 +140,59 @@ class SLRModel(nn.Module):
 
 
 class SLR_Lightning(LightningModule):
-    def __init__(self, model_cfg, training_cfg, gloss_dict):
+    def __init__(
+        self,
+        # * Model args
+        num_classes,
+        c2d_type,
+        conv_type,
+        use_bn,
+        hidden_size,
+        weight_norm,
+        share_classifier,
+        # * Training args
+        optimizer,
+        base_lr,
+        step,
+        learning_ratio,
+        weight_decay,
+        start_epoch,
+        nesterov,
+        loss_weights,
+        gloss_dict,
+    ):
         super().__init__()
 
-        self.training_cfg = training_cfg
-
         # * Define model
-        self.model = SLRModel(gloss_dict=gloss_dict, **model_cfg)
+        self.model = SLRModel(
+            num_classes,
+            c2d_type,
+            conv_type,
+            use_bn,
+            hidden_size,
+            gloss_dict,
+            weight_norm,
+            share_classifier,
+        )
 
         # * Define loss func
         self.loss = {}
         self.loss["CTCLoss"] = torch.nn.CTCLoss(reduction="none", zero_infinity=False)
         self.loss["distillation"] = SeqKD(T=8)
 
+        # * Training cfg
+        self.optimizer = optimizer
+        self.base_lr = base_lr
+        self.step = step
+        self.learning_ratio = learning_ratio
+        self.weight_decay = weight_decay
+        self.start_epoch = start_epoch
+        self.nesterov = nesterov
+        self.loss_weights = loss_weights
+
     def calc_loss(self, ret_dict, label, label_lgt):
         loss = 0
-        for k, weight in self.training_cfg.loss_weights.items():
+        for k, weight in self.loss_weights.items():
             if k == "ConvCTC":
                 loss += (
                     weight
@@ -185,14 +222,14 @@ class SLR_Lightning(LightningModule):
         return loss
 
     def training_step(self, batch, batch_idx):
-        vid, vid_lgt, label, label_lgt = batch
+        vid, vid_lgt, label, label_lgt, info = batch
         ret_dict = self.model(vid, vid_lgt, label, label_lgt)
         loss = self.calc_loss(ret_dict, label, label_lgt)
         self.log("train_loss", loss)
         return loss
 
     def evaluate(self, batch, stage=None):
-        vid, vid_lgt, label, label_lgt = batch
+        vid, vid_lgt, label, label_lgt, info = batch
         ret_dict = self.model(vid, vid_lgt, label, label_lgt)
 
         # try:
@@ -234,24 +271,24 @@ class SLR_Lightning(LightningModule):
         self.evaluate(batch, "test")
 
     def configure_optimizers(self):
-        if self.training_cfg.optimizer == "SGD":
+        if self.optimizer == "SGD":
             optimizer = torch.optim.SGD(
                 self.model.parameters(),
-                lr=self.training_cfg.lr,
+                lr=self.base_lr,
                 momentum=0.9,
-                nesterov=self.training_cfg.nesterov,
-                weight_decay=self.training_cfg.weight_decay,
+                nesterov=self.nesterov,
+                weight_decay=self.weight_decay,
             )
-        elif self.training_cfg.optimizer == "Adam":
+        elif self.optimizer == "Adam":
             optimizer = torch.optim.Adam(
                 self.model.parameters(),
-                lr=self.training_cfg.lr,
-                weight_decay=self.training_cfg.weight_decay,
+                lr=self.base_lr,
+                weight_decay=self.weight_decay,
             )
         else:
             raise ValueError()
 
         lr_scheduler = torch.optim.lr_scheduler.MultiStepLR(
-            optimizer, 0.1, milestones=self.training_cfg.step, gamma=0.2
+            optimizer, milestones=self.step, gamma=0.2
         )
         return [optimizer], [lr_scheduler]

@@ -13,16 +13,23 @@
 # save_interval: 5
 # evaluate_tool: python # sclite
 
+dataset_args:
+  info_dir: "./data/SLR/processed/phoenix2014"
+  img_dir: "./data/SLR/processed/phoenix2014/phoenix-2014-multisigner/features/fullFrame-256x256px"
+  batch_size: 2
+  num_worker: 10
+
 model_args:
   num_classes: 1296
   c2d_type: resnet18
   conv_type: 2
-  use_bn: 1
+  use_bn: True
+  hidden_size: 1024
   # SMKD
-  share_classifier: True # False
   weight_norm: True # False
+  share_classifier: True # False
 
-training_args:
+optimizer_args:
   optimizer: Adam
   base_lr: 0.0001
   step: [20, 35]
@@ -35,3 +42,8 @@ training_args:
     # VAC
     ConvCTC: 1.0
     # Dist: 10.0
+
+trainer_args:
+  accelerator: "gpu"
+  devices: 1
+  max_epochs: 40
