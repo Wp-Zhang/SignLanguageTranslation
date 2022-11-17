@@ -6,7 +6,7 @@ from .modules import Decoder, SeqKD, BiLSTMLayer, TemporalConv
 from .evaluation import evaluate
 from pytorch_lightning import LightningModule
 import os
-import sys
+import torch.distributed as dist
 
 
 class Identity(nn.Module):
@@ -258,70 +258,91 @@ class SLR_Lightning(LightningModule):
     def test_step(self, batch, batch_idx):
         return self.eval_step(batch, "test")
 
-    def eval_end(self, outputs, stage):
-        total_info = []
-        total_sent = []
-        total_conv_sent = []
-        for out in outputs:
-            total_info.extend(out["info"])
-            total_sent.extend(out["recognized_sents"])
-            total_conv_sent.extend(out["conv_sents"])
+    def eval_end(self, device_out, stage):
+        if self.trainer.num_devices > 1:
+            dist.barrier()
+            full_out = [None for _ in self.trainer.device_ids]
+            dist.all_gather_object(full_out, device_out)
+        else:
+            full_out = [device_out]
 
-        try:
+        if self.global_rank == 0:
 
-            def write2file(path, info, output):
-                filereader = open(path, "w")
-                for sample_idx, sample in enumerate(output):
-                    for word_idx, word in enumerate(sample):
-                        filereader.writelines(
-                            "{} 1 {:.2f} {:.2f} {}\n".format(
-                                info[sample_idx],
-                                word_idx * 1.0 / 100,
-                                (word_idx + 1) * 1.0 / 100,
-                                word[0],
+            # if self.trainer.num_devices > 1:
+            #     print(len(outputs))
+            #     outputs = self.all_gather(outputs)
+            #     print(len(outputs))
+
+            total_info = []
+            total_sent = []
+            total_conv_sent = []
+            for outputs in full_out:
+                for out in outputs:
+                    total_info.extend(out["info"])
+                    total_sent.extend(out["recognized_sents"])
+                    total_conv_sent.extend(out["conv_sents"])
+
+            try:
+
+                def write2file(path, info, output):
+                    filereader = open(path, "w")
+                    for sample_idx, sample in enumerate(output):
+                        for word_idx, word in enumerate(sample):
+                            filereader.writelines(
+                                "{} 1 {:.2f} {:.2f} {}\n".format(
+                                    info[sample_idx],
+                                    word_idx * 1.0 / 100,
+                                    (word_idx + 1) * 1.0 / 100,
+                                    word[0],
+                                )
                             )
-                        )
 
-            if not os.path.exists(self.eval_output_dir):
-                os.makedirs(self.eval_output_dir)
+                if not os.path.exists(self.eval_output_dir):
+                    os.makedirs(self.eval_output_dir)
 
-            write2file(
-                os.path.join(self.eval_output_dir, f"out-hypothesis-{stage}.ctm"),
-                total_info,
-                total_sent,
-            )
-            write2file(
-                os.path.join(self.eval_output_dir, f"out-hypothesis-{stage}-conv.ctm"),
-                total_info,
-                total_conv_sent,
-            )
-            conv_ret = evaluate(
-                prefix=self.eval_output_dir,
-                mode=stage,
-                output_file="out-hypothesis-{}-conv.ctm".format(stage),
-                evaluate_dir=self.eval_script_dir,
-                evaluate_prefix="groundtruth",
-                label_dir=self.eval_label_dir,
-                output_dir="result/",
-                python_evaluate=True,
-            )
-            lstm_ret = evaluate(
-                prefix=self.eval_output_dir,
-                mode=stage,
-                output_file="out-hypothesis-{}.ctm".format(stage),
-                evaluate_dir=self.eval_script_dir,
-                evaluate_prefix="groundtruth",
-                label_dir=self.eval_label_dir,
-                output_dir="result/",
-                python_evaluate=True,
-                triplet=True,
-            )
-            self.log(
-                f"{stage}_WER", conv_ret, prog_bar=True, sync_dist=True, on_epoch=True
-            )
-        except:
-            pass
-            # self.log("Unexpected error:", sys.exc_info()[0], sync_dist=True)
+                write2file(
+                    os.path.join(self.eval_output_dir, f"out-hypothesis-{stage}.ctm"),
+                    total_info,
+                    total_sent,
+                )
+                write2file(
+                    os.path.join(
+                        self.eval_output_dir, f"out-hypothesis-{stage}-conv.ctm"
+                    ),
+                    total_info,
+                    total_conv_sent,
+                )
+                conv_ret = evaluate(
+                    prefix=self.eval_output_dir,
+                    mode=stage,
+                    output_file="out-hypothesis-{}-conv.ctm".format(stage),
+                    evaluate_dir=self.eval_script_dir,
+                    evaluate_prefix="groundtruth",
+                    label_dir=self.eval_label_dir,
+                    output_dir="result/",
+                    python_evaluate=True,
+                )
+                # lstm_ret = evaluate(
+                #     prefix=self.eval_output_dir,
+                #     mode=stage,
+                #     output_file="out-hypothesis-{}.ctm".format(stage),
+                #     evaluate_dir=self.eval_script_dir,
+                #     evaluate_prefix="groundtruth",
+                #     label_dir=self.eval_label_dir,
+                #     output_dir="result/",
+                #     python_evaluate=True,
+                #     triplet=True,
+                # )
+                self.log(
+                    f"{stage}_WER",
+                    conv_ret,
+                    prog_bar=True,
+                    # sync_dist=True,
+                    on_epoch=True,
+                )
+            except:
+                pass
+                # self.log("Unexpected error:", sys.exc_info()[0], sync_dist=True)
 
     def validation_epoch_end(self, outputs):
         return self.eval_end(outputs, "dev")
