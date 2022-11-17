@@ -27,20 +27,15 @@ if __name__ == "__main__":
     # * Define model and data module
     slr_model = SLR_Lightning(
         gloss_dict=gloss_dict, **model_cfg, **optimizer_cfg, **eval_cfg
-    )
+    ).load_from_checkpoint("XXXX")
     dataset_cfg.batch_size *= 2
     dm = VideoDataModule(gloss_dict=gloss_dict, **dataset_cfg)
 
     # * Define trainer
-    checkpoint_callback = ModelCheckpoint(
-        dirpath=trainer_cfg.ckpt_dir,
-        filename="Phoenix2014T-SLR-{epoch:02d}-{val_loss:.2f}",
-    )
     trainer = Trainer(
         accelerator=trainer_cfg.accelerator,
         devices=1,  # trainer_cfg.devices
         max_epochs=trainer_cfg.max_epochs,
-        callbacks=[checkpoint_callback],
     )
 
     trainer.validate(model=slr_model, datamodule=dm)

@@ -23,14 +23,24 @@ trainer_cfg = cfg.trainer_args
 eval_cfg = cfg.evaluate_args
 
 gloss_dict = np.load(
-    os.path.join(dataset_cfg.info_dir, "gloss_dict.npy"), allow_pickle=True
+    os.path.join(dataset_cfg.processed_info_dir, "gloss_dict.npy"), allow_pickle=True
 ).item()
 
 # * Define model and data module
 slr_model = SLR_Lightning(
-    gloss_dict=gloss_dict, **model_cfg, **optimizer_cfg, **eval_cfg
+    gloss_dict=gloss_dict,
+    eval_label_dir=dataset_cfg.processed_info_dir,
+    **model_cfg,
+    **optimizer_cfg,
+    **eval_cfg
 )
-dm = VideoDataModule(gloss_dict=gloss_dict, **dataset_cfg)
+dm = VideoDataModule(
+    info_dir=dataset_cfg.processed_info_dir,
+    img_dir=dataset_cfg.processed_img_dir,
+    gloss_dict=gloss_dict,
+    batch_size=dataset_cfg.batch_size,
+    num_worker=dataset_cfg.num_worker,
+)
 
 # * Define trainer
 wandb_logger = WandbLogger(
@@ -42,7 +52,11 @@ except:
     pass
 
 checkpoint_callback = ModelCheckpoint(
-    dirpath=trainer_cfg.ckpt_dir, filename="Phoenix2014T-SLR-{epoch:02d}-{dev_loss:.2f}"
+    dirpath=trainer_cfg.ckpt_dir,
+    filename="Phoenix2014T-SLR-{epoch:02d}-{dev_loss:.2f}",
+    monitor="dev_loss",
+    mode="min",
+    save_last=True,
 )
 trainer = Trainer(
     accelerator=trainer_cfg.accelerator,
@@ -56,4 +70,20 @@ trainer = Trainer(
     logger=wandb_logger,
 )
 
+# * Train model
 trainer.fit(slr_model, dm)
+
+# * Evaluate model
+dataset_cfg.batch_size = 2
+eval_dm = VideoDataModule(gloss_dict=gloss_dict, **dataset_cfg)
+
+val_trainer = Trainer(
+    accelerator=trainer_cfg.accelerator,
+    devices=1,
+    max_epochs=trainer_cfg.max_epochs,
+)
+
+val_trainer.validate(model=slr_model, datamodule=eval_dm)
+test_res = val_trainer.test(model=slr_model, datamodule=eval_dm)
+for k in test_res[0]:
+    wandb_logger.experiment.summary[k] = test_res[0][k]
