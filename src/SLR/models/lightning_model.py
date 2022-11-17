@@ -235,7 +235,7 @@ class SLR_Lightning(LightningModule):
         vid, vid_lgt, label, label_lgt, info = batch
         ret_dict = self.model(vid, vid_lgt, label, label_lgt)
         loss = self.calc_loss(ret_dict, label, label_lgt)
-        self.log("train_loss", loss, batch_size=vid.size(0))
+        self.log("train_loss", loss, batch_size=vid.size(0), on_step=True)
         return loss
 
     def eval_step(self, batch, stage):
