@@ -7,6 +7,7 @@ from box import Box
 import numpy as np
 from pytorch_lightning import Trainer
 from pytorch_lightning.callbacks import ModelCheckpoint
+from pytorch_lightning.loggers import WandbLogger
 
 from src.SLR.data import VideoDataModule
 from src.SLR.models import SLR_Lightning
@@ -30,6 +31,10 @@ slr_model = SLR_Lightning(
 dm = VideoDataModule(gloss_dict=gloss_dict, **dataset_cfg)
 
 # * Define trainer
+wandb_logger = WandbLogger(
+    project="Sign Language Translation", entity="neu-ds5500-team13"
+)
+
 checkpoint_callback = ModelCheckpoint(
     dirpath=trainer_cfg.ckpt_dir, filename="Phoenix2014T-SLR-{epoch:02d}-{val_loss:.2f}"
 )
@@ -41,6 +46,7 @@ trainer = Trainer(
     strategy="ddp_find_unused_parameters_false",
     num_nodes=1,
     callbacks=[checkpoint_callback],
+    logger=wandb_logger,
 )
 
 trainer.fit(slr_model, dm)
