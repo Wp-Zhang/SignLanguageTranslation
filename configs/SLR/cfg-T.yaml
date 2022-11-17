@@ -26,6 +26,7 @@ trainer_args:
   accelerator: "gpu"
   devices: 2
   max_epochs: 40
+  precision: 16 # 32 or 16
   ckpt_dir: output/SLR/lightning_ckpt
 
 evaluate_args:
