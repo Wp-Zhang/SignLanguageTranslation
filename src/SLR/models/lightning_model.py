@@ -130,8 +130,8 @@ class SLRModel(nn.Module):
         )
 
         return {
-            "framewise_features": framewise,
-            "visual_features": x,
+            # "framewise_features": framewise,
+            # "visual_features": x,
             "feat_len": lgt,
             "conv_logits": conv1d_outputs["conv_logits"],
             "sequence_logits": outputs,
@@ -261,8 +261,12 @@ class SLR_Lightning(LightningModule):
     def eval_end(self, device_out, stage):
         if self.trainer.num_devices > 1:
             dist.barrier()
+            useful_info = [
+                {k: output[k] for k in ["info", "recognized_sents", "conv_sents"]}
+                for output in device_out
+            ]
             full_out = [None for _ in self.trainer.device_ids]
-            dist.all_gather_object(full_out, device_out)
+            dist.all_gather_object(full_out, useful_info)
         else:
             full_out = [device_out]
 

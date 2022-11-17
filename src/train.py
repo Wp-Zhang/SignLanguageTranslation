@@ -42,7 +42,7 @@ except:
     pass
 
 checkpoint_callback = ModelCheckpoint(
-    dirpath=trainer_cfg.ckpt_dir, filename="Phoenix2014T-SLR-{epoch:02d}-{val_loss:.2f}"
+    dirpath=trainer_cfg.ckpt_dir, filename="Phoenix2014T-SLR-{epoch:02d}-{dev_loss:.2f}"
 )
 trainer = Trainer(
     accelerator=trainer_cfg.accelerator,
@@ -51,6 +51,7 @@ trainer = Trainer(
     sync_batchnorm=True,
     strategy="ddp_find_unused_parameters_false",
     num_nodes=1,
+    precision=trainer_cfg.precision,
     callbacks=[checkpoint_callback],
     logger=wandb_logger,
 )
