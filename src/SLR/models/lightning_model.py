@@ -336,10 +336,10 @@ class SLR_Lightning(LightningModule):
                 self.log(
                     f"{stage}_WER",
                     conv_ret,
-                    prog_bar=True,
                     # sync_dist=True,
                     on_epoch=True,
                 )
+                return {"WER": conv_ret}
             except:
                 pass
                 # self.log("Unexpected error:", sys.exc_info()[0], sync_dist=True)
