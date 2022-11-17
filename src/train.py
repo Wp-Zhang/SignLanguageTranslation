@@ -1,6 +1,8 @@
 import os
 import sys
+import warnings
 
+warnings.filterwarnings("ignore")
 sys.path.append("./")
 
 from box import Box
@@ -34,6 +36,10 @@ dm = VideoDataModule(gloss_dict=gloss_dict, **dataset_cfg)
 wandb_logger = WandbLogger(
     project="Sign Language Translation", entity="neu-ds5500-team13"
 )
+try:
+    wandb_logger.experiment.config.update(cfg.to_dict())
+except:
+    pass
 
 checkpoint_callback = ModelCheckpoint(
     dirpath=trainer_cfg.ckpt_dir, filename="Phoenix2014T-SLR-{epoch:02d}-{val_loss:.2f}"
