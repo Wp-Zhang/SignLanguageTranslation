@@ -1,0 +1,43 @@
+model_args:
+  num_classes: 1296
+  c2d_type: resnet18
+  conv_type: 2
+  use_bn: True
+  hidden_size: 1024
+  # SMKD
+  weight_norm: True
+  share_classifier: True
+
+optimizer_args:
+  optimizer: Adam
+  base_lr: 0.0001
+  step: [20, 35]
+  weight_decay: 0.0001
+  start_epoch: 0
+  nesterov: False
+  loss_weights:
+    SeqCTC: 1.0
+    # VAC
+    ConvCTC: 1.0
+    # Dist: 10.0
+
+trainer_args:
+  accelerator: "gpu"
+  devices: 2
+  max_epochs: 40
+  precision: 16 # 32 or 16
+  ckpt_dir: output/SLR/Phoenix2014/ckpt
+
+evaluate_args:
+  eval_script_dir: src/SLR/models/evaluation
+  eval_output_dir: output/SLR/Phoenix2014/eval_result
+
+dataset_args:
+  dataset_name: Phoenix2014
+  img_size: [256, 256]
+  raw_info_dir: data/SLR/raw/Phoenix2014/annotations/manual
+  raw_img_dir: data/SLR/raw/Phoenix2014/features/fullFrame-210x260px
+  processed_info_dir: data/SLR/processed/Phoenix2014
+  processed_img_dir: data/SLR/processed/Phoenix2014/features/fullFrame-256x256px
+  batch_size: 1
+  num_worker: 8

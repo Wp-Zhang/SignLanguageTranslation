@@ -1,8 +1,8 @@
-import os
 import cv2
-import glob
 import torch
 import numpy as np
+import pandas as pd
+from pathlib import Path
 
 from torch.utils.data import Dataset, DataLoader
 from pytorch_lightning import LightningDataModule
@@ -13,13 +13,13 @@ warnings.simplefilter(action="ignore", category=FutureWarning)
 
 
 class VideoDataset(Dataset):
-    def __init__(self, gloss_dict, inputs_list, img_dir, mode="train"):
+    def __init__(self, gloss_dict, annotations, img_dir, mode="train"):
         self.img_dir = img_dir
 
         self.mode = mode
         self.gloss_dict = gloss_dict
 
-        self.inputs_list = inputs_list
+        self.annotations = annotations
 
         if mode == "train":
             self.transform = Compose(
@@ -34,12 +34,12 @@ class VideoDataset(Dataset):
             self.transform = Compose([CenterCrop(224), ToTensor()])
 
     def __getitem__(self, idx):
-        fi = self.inputs_list[idx]
-        img_folder = os.path.join(self.img_dir, fi["folder"].replace("/1/", "/"))
-        img_list = sorted(glob.glob(img_folder))
+        info = self.annotations.iloc[idx]
+        img_folder = Path(self.img_dir) / self.mode / info["fileid"]
+        img_list = [str(p) for p in list(img_folder.glob(info["pattern"]))]
 
         label_list = []
-        for phase in fi["label"].split(" "):
+        for phase in info["label"].split(" "):
             if phase == "":
                 continue
             if phase in self.gloss_dict.keys():
@@ -53,7 +53,7 @@ class VideoDataset(Dataset):
         input_data = self.transform(input_data)
         input_data = input_data.float() / 127.5 - 1
 
-        return input_data, label, self.inputs_list[idx]["original_info"]
+        return input_data, label, info["fileid"]
 
     @staticmethod
     def collate_fn(batch):
@@ -104,7 +104,7 @@ class VideoDataset(Dataset):
             return padded_video, video_length, padded_label, label_length, info
 
     def __len__(self):
-        return len(self.inputs_list) - 1
+        return self.annotations.shape[0]
 
     # def record_time(self):
     #     self.cur_time = time.time()
@@ -132,25 +132,19 @@ class VideoDataModule(LightningDataModule):
     def setup(self, stage=None) -> None:
         if stage == "fit" or stage == "validate":
             if stage == "fit":
-                trn_inputs_list = np.load(
-                    f"{self.info_dir}/train_info.npy", allow_pickle=True
-                ).item()
+                trn_annotations = pd.read_csv(f"{self.info_dir}/train_info.csv")
                 self.datasets["fit"] = VideoDataset(
-                    self.gloss_dict, trn_inputs_list, self.img_dir, "train"
+                    self.gloss_dict, trn_annotations, self.img_dir, "train"
                 )
 
-            val_inputs_list = np.load(
-                f"{self.info_dir}/dev_info.npy", allow_pickle=True
-            ).item()
+            val_annotations = pd.read_csv(f"{self.info_dir}/dev_info.csv")
             self.datasets["validate"] = VideoDataset(
-                self.gloss_dict, val_inputs_list, self.img_dir, "dev"
+                self.gloss_dict, val_annotations, self.img_dir, "dev"
             )
         elif stage == "test":
-            inputs_list = np.load(
-                f"{self.info_dir}/test_info.npy", allow_pickle=True
-            ).item()
+            test_annotations = pd.read_csv(f"{self.info_dir}/test_info.csv")
             self.datasets["test"] = VideoDataset(
-                self.gloss_dict, inputs_list, self.img_dir, "test"
+                self.gloss_dict, test_annotations, self.img_dir, "test"
             )
 
     def train_dataloader(self):

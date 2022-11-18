@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 import torch
 import torch.distributed as dist
 from pytorch_lightning import LightningModule
@@ -23,7 +24,6 @@ class SLR_Lightning(LightningModule):
         optimizer,
         base_lr,
         step,
-        learning_ratio,
         weight_decay,
         start_epoch,
         nesterov,
@@ -59,7 +59,6 @@ class SLR_Lightning(LightningModule):
         self.optimizer = optimizer
         self.base_lr = base_lr
         self.step = step
-        self.learning_ratio = learning_ratio
         self.weight_decay = weight_decay
         self.start_epoch = start_epoch
         self.nesterov = nesterov
@@ -102,20 +101,21 @@ class SLR_Lightning(LightningModule):
         return loss
 
     def training_step(self, batch, batch_idx):
-        vid, vid_lgt, label, label_lgt, info = batch
+        vid, vid_lgt, label, label_lgt, _ = batch
         ret_dict = self.model(vid, vid_lgt, label, label_lgt)
         loss = self.calc_loss(ret_dict, label, label_lgt)
         self.log("train_loss", loss, batch_size=vid.size(0), on_step=True)
+        scheduler = self.trainer.lr_schedulers[0]["scheduler"]
         self.log(
             "lr",
-            self.trainer.lr_schedulers.get_last_lr(),
+            scheduler.get_last_lr()[0],
             batch_size=vid.size(0),
             on_step=True,
         )
         return loss
 
     def eval_step(self, batch, stage):
-        vid, vid_lgt, label, label_lgt, info = batch
+        vid, vid_lgt, label, label_lgt, name = batch
         ret_dict = self.model(vid, vid_lgt, label, label_lgt)
 
         loss = self.calc_loss(ret_dict, label, label_lgt)
@@ -124,8 +124,7 @@ class SLR_Lightning(LightningModule):
             f"{stage}_loss", loss, prog_bar=True, batch_size=vid.size(0), sync_dist=True
         )
 
-        info = [filename.split("|")[0] for filename in info]
-        ret_dict["info"] = info
+        ret_dict["name"] = name
         return ret_dict
 
     def validation_step(self, batch, batch_idx):
@@ -147,14 +146,14 @@ class SLR_Lightning(LightningModule):
             full_out = [device_out]
 
         if self.global_rank == 0:
-            total_info = []
-            total_sent = []
-            total_conv_sent = []
+            full_name = []
+            full_sent = []
+            full_conv_sent = []
             for outputs in full_out:
                 for out in outputs:
-                    total_info.extend(out["info"])
-                    total_sent.extend(out["recognized_sents"])
-                    total_conv_sent.extend(out["conv_sents"])
+                    full_name.extend(out["name"])
+                    full_sent.extend(out["recognized_sents"])
+                    full_conv_sent.extend(out["conv_sents"])
 
             try:
 
@@ -176,18 +175,18 @@ class SLR_Lightning(LightningModule):
 
                 write2file(
                     os.path.join(self.eval_output_dir, f"out-hypothesis-{stage}.ctm"),
-                    total_info,
-                    total_sent,
+                    full_name,
+                    full_sent,
                 )
                 write2file(
                     os.path.join(
                         self.eval_output_dir, f"out-hypothesis-{stage}-conv.ctm"
                     ),
-                    total_info,
-                    total_conv_sent,
+                    full_name,
+                    full_conv_sent,
                 )
                 conv_ret = evaluate(
-                    prefix=self.eval_output_dir,
+                    prefix=str(Path(self.eval_output_dir)) + "/",
                     mode=stage,
                     output_file="out-hypothesis-{}-conv.ctm".format(stage),
                     evaluate_dir=self.eval_script_dir,
