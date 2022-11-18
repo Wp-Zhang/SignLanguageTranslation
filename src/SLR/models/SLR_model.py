@@ -2,7 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
-from .modules import Decoder, SeqKD, BiLSTMLayer, TemporalConv
+
+from .modules import Decoder, BiLSTMLayer, TemporalConv
 
 
 class Identity(nn.Module):
@@ -33,16 +34,12 @@ class SLRModel(nn.Module):
         use_bn=False,
         hidden_size=1024,
         gloss_dict=None,
-        loss_weights=None,
         weight_norm=True,
         share_classifier=True,
     ):
         super(SLRModel, self).__init__()
-        self.decoder = None
-        self.loss = dict()
-        self.criterion_init()
+
         self.num_classes = num_classes
-        self.loss_weights = loss_weights
         self.conv2d = getattr(models, c2d_type)(pretrained=True)
         self.conv2d.fc = Identity()
         self.conv1d = TemporalConv(
@@ -52,6 +49,7 @@ class SLRModel(nn.Module):
             use_bn=use_bn,
             num_classes=num_classes,
         )
+
         self.decoder = Decoder(gloss_dict, num_classes, "beam")
         self.temporal_model = BiLSTMLayer(
             rnn_type="LSTM",
@@ -68,7 +66,7 @@ class SLRModel(nn.Module):
             self.conv1d.fc = nn.Linear(hidden_size, self.num_classes)
         if share_classifier:
             self.conv1d.fc = self.classifier
-        self.register_backward_hook(self.backward_hook)
+        self.register_full_backward_hook(self.backward_hook)
 
     def backward_hook(self, module, grad_input, grad_output):
         for g in grad_input:
@@ -129,47 +127,11 @@ class SLRModel(nn.Module):
         )
 
         return {
-            "framewise_features": framewise,
-            "visual_features": x,
+            # "framewise_features": framewise,
+            # "visual_features": x,
             "feat_len": lgt,
             "conv_logits": conv1d_outputs["conv_logits"],
             "sequence_logits": outputs,
             "conv_sents": conv_pred,
             "recognized_sents": pred,
         }
-
-    def criterion_calculation(self, ret_dict, label, label_lgt):
-        loss = 0
-        for k, weight in self.loss_weights.items():
-            if k == "ConvCTC":
-                loss += (
-                    weight
-                    * self.loss["CTCLoss"](
-                        ret_dict["conv_logits"].log_softmax(-1),
-                        label.cpu().int(),
-                        ret_dict["feat_len"].cpu().int(),
-                        label_lgt.cpu().int(),
-                    ).mean()
-                )
-            elif k == "SeqCTC":
-                loss += (
-                    weight
-                    * self.loss["CTCLoss"](
-                        ret_dict["sequence_logits"].log_softmax(-1),
-                        label.cpu().int(),
-                        ret_dict["feat_len"].cpu().int(),
-                        label_lgt.cpu().int(),
-                    ).mean()
-                )
-            elif k == "Dist":
-                loss += weight * self.loss["distillation"](
-                    ret_dict["conv_logits"],
-                    ret_dict["sequence_logits"].detach(),
-                    use_blank=False,
-                )
-        return loss
-
-    def criterion_init(self):
-        self.loss["CTCLoss"] = torch.nn.CTCLoss(reduction="none", zero_infinity=False)
-        self.loss["distillation"] = SeqKD(T=8)
-        return self.loss

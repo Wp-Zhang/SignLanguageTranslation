@@ -234,12 +234,12 @@ def wer_calculation(gt_path, primary_pred, auxiliary_pred=None):
             )
             results_list.append(sent_stat)
     results = sum_dict(results_list)
-    print(
-        f"WER_primary: {results['wer_lstm'] / results['cnt']: 2.2%}\n"
-        f"WER_auxiliary: {results['wer_conv'] / results['cnt']: 2.2%}\n"
-        f"WAR: {results['war'] / results['cnt']: 2.2%}\n"
-        f"WDR: {results['wdr'] / results['cnt']: 2.2%}"
-    )
+    # print(
+    #     f"WER_primary: {results['wer_lstm'] / results['cnt']: 2.2%}\n"
+    #     f"WER_auxiliary: {results['wer_conv'] / results['cnt']: 2.2%}\n"
+    #     f"WAR: {results['war'] / results['cnt']: 2.2%}\n"
+    #     f"WDR: {results['wdr'] / results['cnt']: 2.2%}"
+    # )
     return results["wer_lstm"] / results["cnt"] * 100
 
 

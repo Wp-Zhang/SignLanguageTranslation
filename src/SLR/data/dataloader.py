@@ -1,146 +1,59 @@
-import os
 import cv2
-import sys
-import pdb
-import six
-import glob
-import time
 import torch
+import numpy as np
+import pandas as pd
+from pathlib import Path
+
+from torch.utils.data import Dataset, DataLoader
+from pytorch_lightning import LightningDataModule
+from .video_augmentation import *
 import warnings
 
 warnings.simplefilter(action="ignore", category=FutureWarning)
 
-import numpy as np
 
-# import pyarrow as pa
-from PIL import Image
-import torch.utils.data as data
-import matplotlib.pyplot as plt
-from .video_augmentation import *
-from torch.utils.data.sampler import Sampler
+class VideoDataset(Dataset):
+    def __init__(self, gloss_dict, annotations, img_dir, mode="train"):
+        self.img_dir = img_dir
 
-sys.path.append("..")
-
-
-class BaseFeeder(data.Dataset):
-    def __init__(
-        self,
-        prefix,
-        gloss_dict,
-        drop_ratio=1,
-        num_gloss=-1,
-        mode="train",
-        transform_mode=True,
-        datatype="lmdb",
-    ):
         self.mode = mode
-        self.ng = num_gloss
-        self.prefix = prefix
-        self.dict = gloss_dict
-        self.data_type = datatype
-        self.feat_prefix = f"{prefix}/features/fullFrame-256x256px/{mode}"
-        self.transform_mode = "train" if transform_mode else "test"
+        self.gloss_dict = gloss_dict
 
-        root_dir = "/".join(prefix.split("/")[:-1])
-        self.inputs_list = np.load(
-            f"{root_dir}/{mode}_info.npy", allow_pickle=True
-        ).item()
-        # self.inputs_list = np.load(f"{prefix}/annotations/manual/{mode}.corpus.npy", allow_pickle=True).item()
-        # self.inputs_list = np.load(f"{prefix}/annotations/manual/{mode}.corpus.npy", allow_pickle=True).item()
-        # self.inputs_list = dict([*filter(lambda x: isinstance(x[0], str) or x[0] < 10, self.inputs_list.items())])
-        print(mode, len(self))
-        self.data_aug = self.transform()
-        print("")
+        self.annotations = annotations
 
-    def __getitem__(self, idx):
-        if self.data_type == "video":
-            input_data, label, fi = self.read_video(idx)
-            input_data, label = self.normalize(input_data, label)
-            # input_data, label = self.normalize(input_data, label, fi['fileid'])
-            return (
-                input_data,
-                torch.LongTensor(label),
-                self.inputs_list[idx]["original_info"],
-            )
-        elif self.data_type == "lmdb":
-            input_data, label, fi = self.read_lmdb(idx)
-            input_data, label = self.normalize(input_data, label)
-            return (
-                input_data,
-                torch.LongTensor(label),
-                self.inputs_list[idx]["original_info"],
-            )
-        else:
-            input_data, label = self.read_features(idx)
-            return input_data, label, self.inputs_list[idx]["original_info"]
-
-    def read_video(self, index, num_glosses=-1):
-        # load file info
-        fi = self.inputs_list[index]
-        img_folder = os.path.join(
-            self.prefix, "features/fullFrame-256x256px/" + fi["folder"]
-        )
-        img_list = sorted(glob.glob(img_folder))
-        label_list = []
-        for phase in fi["label"].split(" "):
-            if phase == "":
-                continue
-            if phase in self.dict.keys():
-                label_list.append(self.dict[phase][0])
-        return (
-            [
-                cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
-                for img_path in img_list
-            ],
-            label_list,
-            fi,
-        )
-
-    def read_features(self, index):
-        # load file info
-        fi = self.inputs_list[index]
-        data = np.load(
-            f"./features/{self.mode}/{fi['fileid']}_features.npy", allow_pickle=True
-        ).item()
-        return data["features"], data["label"]
-
-    def normalize(self, video, label, file_id=None):
-        video, label = self.data_aug(video, label, file_id)
-        video = video.float() / 127.5 - 1
-        return video, label
-
-    def transform(self):
-        if self.transform_mode == "train":
-            print("Apply training transform.")
-            return Compose(
+        if mode == "train":
+            self.transform = Compose(
                 [
-                    # CenterCrop(224),
-                    # WERAugment('/lustre/wangtao/current_exp/exp/baseline/boundary.npy'),
                     RandomCrop(224),
                     RandomHorizontalFlip(0.5),
                     ToTensor(),
                     TemporalRescale(0.2),
-                    # Resize(0.5),
                 ]
             )
         else:
-            print("Apply testing transform.")
-            return Compose(
-                [
-                    CenterCrop(224),
-                    # Resize(0.5),
-                    ToTensor(),
-                ]
-            )
+            self.transform = Compose([CenterCrop(224), ToTensor()])
 
-    # def byte_to_img(self, byteflow):
-    #     unpacked = pa.deserialize(byteflow)
-    #     imgbuf = unpacked[0]
-    #     buf = six.BytesIO()
-    #     buf.write(imgbuf)
-    #     buf.seek(0)
-    #     img = Image.open(buf).convert("RGB")
-    #     return img
+    def __getitem__(self, idx):
+        info = self.annotations.iloc[idx]
+        img_folder = Path(self.img_dir) / self.mode / info["fileid"]
+        img_list = [str(p) for p in list(img_folder.glob(info["pattern"]))]
+
+        label_list = []
+        for phase in info["label"].split(" "):
+            if phase == "":
+                continue
+            if phase in self.gloss_dict.keys():
+                label_list.append(self.gloss_dict[phase][0])
+        input_data = [
+            cv2.cvtColor(cv2.imread(img_path), cv2.COLOR_BGR2RGB)
+            for img_path in img_list
+        ]
+        label = torch.LongTensor(label_list)
+
+        input_data = self.transform(input_data)
+        input_data = input_data.float() / 127.5 - 1
+
+        return input_data, label, info["fileid"]
 
     @staticmethod
     def collate_fn(batch):
@@ -191,26 +104,78 @@ class BaseFeeder(data.Dataset):
             return padded_video, video_length, padded_label, label_length, info
 
     def __len__(self):
-        return len(self.inputs_list) - 1
+        return self.annotations.shape[0]
 
-    def record_time(self):
-        self.cur_time = time.time()
-        return self.cur_time
+    # def record_time(self):
+    #     self.cur_time = time.time()
+    #     return self.cur_time
 
-    def split_time(self):
-        split_time = time.time() - self.cur_time
-        self.record_time()
-        return split_time
+    # def split_time(self):
+    #     split_time = time.time() - self.cur_time
+    #     self.record_time()
+    #     return split_time
 
 
-if __name__ == "__main__":
-    feeder = BaseFeeder()
-    dataloader = torch.utils.data.DataLoader(
-        dataset=feeder,
-        batch_size=1,
-        shuffle=True,
-        drop_last=True,
-        num_workers=0,
-    )
-    for data in dataloader:
-        pdb.set_trace()
+class VideoDataModule(LightningDataModule):
+    def __init__(self, info_dir, img_dir, gloss_dict, batch_size, num_worker=1, **args):
+        super().__init__()
+
+        self.info_dir = info_dir
+        self.img_dir = img_dir
+
+        self.batch_size = batch_size
+        self.num_worker = num_worker
+
+        self.gloss_dict = gloss_dict
+        self.datasets = {"fit": None, "validate": None, "test": None}
+
+    def setup(self, stage=None) -> None:
+        if stage == "fit" or stage == "validate":
+            if stage == "fit":
+                trn_annotations = pd.read_csv(f"{self.info_dir}/train_info.csv")
+                self.datasets["fit"] = VideoDataset(
+                    self.gloss_dict, trn_annotations, self.img_dir, "train"
+                )
+
+            val_annotations = pd.read_csv(f"{self.info_dir}/dev_info.csv")
+            self.datasets["validate"] = VideoDataset(
+                self.gloss_dict, val_annotations, self.img_dir, "dev"
+            )
+        elif stage == "test":
+            test_annotations = pd.read_csv(f"{self.info_dir}/test_info.csv")
+            self.datasets["test"] = VideoDataset(
+                self.gloss_dict, test_annotations, self.img_dir, "test"
+            )
+
+    def train_dataloader(self):
+        dataset = self.datasets["fit"]
+        return DataLoader(
+            dataset=self.datasets["fit"],
+            batch_size=self.batch_size,
+            shuffle=True,
+            drop_last=True,
+            num_workers=self.num_worker,
+            collate_fn=dataset.collate_fn,
+        )
+
+    def val_dataloader(self):
+        dataset = self.datasets["validate"]
+        return DataLoader(
+            dataset=self.datasets["validate"],
+            batch_size=self.batch_size,
+            shuffle=False,
+            drop_last=False,
+            num_workers=self.num_worker,
+            collate_fn=dataset.collate_fn,
+        )
+
+    def test_dataloader(self):
+        dataset = self.datasets["test"]
+        return DataLoader(
+            dataset=self.datasets["test"],
+            batch_size=self.batch_size,
+            shuffle=False,
+            drop_last=False,
+            num_workers=self.num_worker,
+            collate_fn=dataset.collate_fn,
+        )

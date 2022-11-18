@@ -41,21 +41,47 @@ Project Organization
 --------
 ## Sign Language Recognition
 
+### Environment Setup
+
+- Install `ctcdecode`
+
+   > Note: install may not succeed under Windows.
+
+   1. `git clone --recursive https://github.com/parlance/ctcdecode.git`
+   2. `cd ctcdecode && pip install .`
+
+- Install and initialize `wandb`
+   1. `pip install wandb`
+   2. `wandb init`
+
 ### Data Preprocessing
 
-1. Download **Phoenix-14** dataset and put it under `data/SLR/raw/`
+1. Download **Phoenix-2014** dataset and extract it to `data/SLR/raw/`, rename the data folder as `Phoenix2014`. The directory structure should be like:
 
-2. In the project root folder, run cmd `python src/SLR/data/preprocess.py --process-image --multiprocessing`
+```
+└── Phoenix2014
+    ├── annotations
+    ├── evaluation
+    ├── features
+    ├── models
+    ├── LICENSE.txt
+    └── README
+```
+
+2. In the project root folder, run cmd `python src/SLR/prepare_data.py --config configs/SLR/phoenix2014-res18.yaml`
 
 
-### Download Model Weights
+<!-- ### Download Model Weights
 
-Download pre-trained model weights, see [here](https://github.com/ycmin95/VAC_CSLR).
+Download pre-trained model weights, see [here](https://github.com/ycmin95/VAC_CSLR). Put the downloaded model weights under `models/SLR/` -->
 
+### Training
+
+In the project root folder, run cmd `python src/SLR/train.py --config configs/SLR/phoenix2014-res18.yaml`
 
 ### Evaluation
 
-Run cmd `python src/SLR/run.py --load-weights models/SLR/resnet18_vac_smkd_dev_19.80_epoch35_model.pt --phase test`
+In the project root folder, run cmd `python src/SLR/eval.py --config configs/SLR/phoenix2014-res18.yaml --weights CHECKPOINT_FILE_PATH`
 
 --------
 
