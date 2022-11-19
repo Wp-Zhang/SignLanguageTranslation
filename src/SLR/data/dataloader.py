@@ -36,7 +36,7 @@ class VideoDataset(Dataset):
     def __getitem__(self, idx):
         info = self.annotations.iloc[idx]
         img_folder = Path(self.img_dir) / self.mode / info["fileid"]
-        img_list = [str(p) for p in list(img_folder.glob(info["pattern"]))]
+        img_list = sorted([str(p) for p in list(img_folder.glob(info["pattern"]))])
 
         label_list = []
         for phase in info["label"].split(" "):

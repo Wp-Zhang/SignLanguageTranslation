@@ -1,4 +1,5 @@
 import pandas as pd
+import csv
 import cv2
 import pickle
 from pathlib import Path
@@ -48,13 +49,21 @@ def _update_gloss_dict(annotation: pd.DataFrame, gloss_dict: Dict) -> Dict:
 def _save_groundtruth(annotation: pd.DataFrame, save_path: Path):
     # TODO refactor
     df = annotation[["fileid", "signer", "label"]]
-    df["a"] = 1
-    df["b"] = 0.0
-    df["c"] = "1.79769e+308"
+    # df["a"] = 1
+    # df["b"] = 0.0
+    # df["c"] = "1.79769e+308"
 
-    df[["fileid", "a", "signer", "b", "c", "label"]].to_csv(
-        save_path, header=False, index=False, sep=" "
-    )
+    # df[["fileid", "a", "signer", "b", "c", "label"]].to_csv(
+    #     save_path,
+    #     header=False,
+    #     index=False,
+    #     sep=" "
+    # )
+    with open(save_path, "w") as f:
+        for _, row in df.iterrows():
+            f.writelines(
+                f"{row['fileid']} 1 {row['signer']} 0.0 1.79769e+308 {row['label']}\n"
+            )
 
 
 def _resize_img(

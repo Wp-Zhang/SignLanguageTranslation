@@ -105,7 +105,7 @@ class SLR_Lightning(LightningModule):
         ret_dict = self.model(vid, vid_lgt, label, label_lgt)
         loss = self.calc_loss(ret_dict, label, label_lgt)
         self.log("train_loss", loss, batch_size=vid.size(0), on_step=True)
-        scheduler = self.trainer.lr_schedulers[0]["scheduler"]
+        scheduler = self.lr_schedulers()
         self.log(
             "lr",
             scheduler.get_last_lr()[0],
@@ -137,7 +137,7 @@ class SLR_Lightning(LightningModule):
         if self.trainer.num_devices > 1:
             dist.barrier()
             useful_info = [
-                {k: output[k] for k in ["info", "recognized_sents", "conv_sents"]}
+                {k: output[k] for k in ["name", "recognized_sents", "conv_sents"]}
                 for output in device_out
             ]
             full_out = [None for _ in self.trainer.device_ids]

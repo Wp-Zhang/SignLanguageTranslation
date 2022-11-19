@@ -4,7 +4,7 @@ import argparse
 import warnings
 import pickle
 from box import Box
-from pytorch_lightning import Trainer
+from pytorch_lightning import Trainer, seed_everything
 from pytorch_lightning.callbacks import ModelCheckpoint
 from pytorch_lightning.loggers import WandbLogger
 
@@ -45,6 +45,7 @@ if __name__ == "__main__":
     )
 
     # * Define model and data module
+    seed_everything(42, workers=True)
     slr_model = SLR_Lightning(
         gloss_dict=gloss_dict,
         eval_label_dir=dataset_cfg.processed_info_dir,
