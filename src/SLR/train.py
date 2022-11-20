@@ -72,8 +72,8 @@ if __name__ == "__main__":
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=trainer_cfg.ckpt_dir,
-        filename=dataset_cfg.dataset_name + "-SLR-{epoch:02d}-{dev_loss:.2f}",
-        monitor="dev_loss",
+        filename=dataset_cfg.dataset_name + "-SLR-{epoch:02d}-{dev_WER:.2f}",
+        monitor="dev_WER",
         mode="min",
         save_last=True,
     )
@@ -95,7 +95,7 @@ if __name__ == "__main__":
     # * Evaluate model
     val_trainer = Trainer(
         accelerator=trainer_cfg.accelerator,
-        devices=trainer_cfg.devices,
+        devices=1,
         max_epochs=trainer_cfg.max_epochs,
         logger=wandb_logger,
         callbacks=[checkpoint_callback],
