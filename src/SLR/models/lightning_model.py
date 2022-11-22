@@ -25,7 +25,6 @@ class SLR_Lightning(LightningModule):
         base_lr,
         step,
         weight_decay,
-        start_epoch,
         nesterov,
         loss_weights,
         gloss_dict,
@@ -60,7 +59,6 @@ class SLR_Lightning(LightningModule):
         self.base_lr = base_lr
         self.step = step
         self.weight_decay = weight_decay
-        self.start_epoch = start_epoch
         self.nesterov = nesterov
         self.loss_weights = loss_weights
 
