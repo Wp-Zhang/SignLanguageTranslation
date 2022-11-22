@@ -82,8 +82,9 @@ if __name__ == "__main__":
         devices=trainer_cfg.devices,
         max_epochs=trainer_cfg.max_epochs,
         sync_batchnorm=True,
-        strategy="ddp_find_unused_parameters_false",
-        num_nodes=1,
+        strategy="ddp_find_unused_parameters_false"
+        if trainer_cfg.devices > 1
+        else None,
         precision=trainer_cfg.precision,
         callbacks=[checkpoint_callback],
         logger=wandb_logger,
