@@ -41,9 +41,10 @@ class SLRModel(nn.Module):
 
         self.num_classes = num_classes
         self.conv2d = getattr(models, c2d_type)(pretrained=True)
+        out_dim = self.conv2d.fc.in_features
         self.conv2d.fc = Identity()
         self.conv1d = TemporalConv(
-            input_size=512,
+            input_size=out_dim,
             hidden_size=hidden_size,
             conv_type=conv_type,
             use_bn=use_bn,
