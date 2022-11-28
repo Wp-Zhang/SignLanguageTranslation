@@ -1,6 +1,6 @@
 model_args:
   num_classes: 1116
-  backbone: swinv2_tiny_window8_256
+  backbone: swin_tiny_patch4_window7_224
   conv_type: 2
   use_bn: True
   hidden_size: 1024
@@ -22,14 +22,14 @@ optimizer_args:
 
 trainer_args:
   accelerator: "gpu"
-  devices: 1
+  devices: 2
   max_epochs: 40
   precision: 16 # 32 or 16
-  ckpt_dir: output/SLR/Phoenix2014T/ckpt
+  ckpt_dir: output/SLR/Phoenix2014T-swin/ckpt
 
 evaluate_args:
   eval_script_dir: src/SLR/models/evaluation
-  eval_output_dir: output/SLR/Phoenix2014T/eval_result
+  eval_output_dir: output/SLR/Phoenix2014T-swin/eval_result
 
 dataset_args:
   dataset_name: Phoenix2014T
@@ -38,5 +38,5 @@ dataset_args:
   raw_img_dir: data/SLR/raw/Phoenix2014T/features/fullFrame-210x260px
   processed_info_dir: data/SLR/processed/Phoenix2014T
   processed_img_dir: data/SLR/processed/Phoenix2014T/features/fullFrame-256x256px
-  batch_size: 2
+  batch_size: 1
   num_worker: 10

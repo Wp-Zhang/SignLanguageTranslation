@@ -204,16 +204,10 @@ class SLR_Lightning(LightningModule):
                 #     python_evaluate=True,
                 #     triplet=True,
                 # )
-                self.log(
-                    f"{stage}_WER",
-                    conv_ret,
-                    # sync_dist=True,
-                    on_epoch=True,
-                )
+                self.log(f"{stage}_WER", conv_ret, prog_bar=True)
                 return {f"{stage}_WER": conv_ret}
             except:
                 pass
-                # self.log("Unexpected error:", sys.exc_info()[0], sync_dist=True)
 
     def validation_epoch_end(self, outputs):
         return self.eval_end(outputs, "dev")

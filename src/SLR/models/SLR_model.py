@@ -46,7 +46,7 @@ class SLRModel(nn.Module):
             self.backbone = getattr(models, backbone)(pretrained=True)
             self.backbone.fc = Identity()
             out_dim = self.backbone.fc.in_features
-        elif backbone in []:
+        elif backbone in ["swin_tiny_patch4_window7_224"]:
             self.backbone = create_model(
                 backbone, pretrained=True, num_classes=0, in_chans=3
             )
@@ -97,7 +97,7 @@ class SLRModel(nn.Module):
                 for idx, lgt in enumerate(len_x)
             ]
         )
-        x = self.conv2d(x)
+        x = self.backbone(x)
         x = torch.cat(
             [
                 pad(x[sum(len_x[:idx]) : sum(len_x[: idx + 1])], len_x[0])

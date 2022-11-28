@@ -72,8 +72,8 @@ if __name__ == "__main__":
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=trainer_cfg.ckpt_dir,
-        filename=dataset_cfg.dataset_name + "-SLR-{epoch:02d}-{dev_WER:.2f}",
-        monitor="dev_WER",
+        filename=dataset_cfg.dataset_name + "-SLR-{epoch:02d}-{dev_loss:.2f}",
+        monitor="dev_loss",
         mode="min",
         save_last=True,
     )

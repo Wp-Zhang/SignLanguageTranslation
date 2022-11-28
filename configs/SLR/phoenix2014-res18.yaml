@@ -1,7 +1,7 @@
 model_args:
   num_classes: 1296
   backbone: resnet18
-  conv_type: 2
+  backbone: 2
   use_bn: True
   hidden_size: 1024
   # SMKD
