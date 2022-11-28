@@ -14,7 +14,7 @@ class SLR_Lightning(LightningModule):
         self,
         # * Model args
         num_classes,
-        c2d_type,
+        backbone,
         conv_type,
         use_bn,
         hidden_size,
@@ -40,7 +40,7 @@ class SLR_Lightning(LightningModule):
         # * Define model
         self.model = SLRModel(
             num_classes,
-            c2d_type,
+            backbone,
             conv_type,
             use_bn,
             hidden_size,

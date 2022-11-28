@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
+from timm import create_model
 
 from .modules import Decoder, BiLSTMLayer, TemporalConv
 
@@ -29,7 +30,7 @@ class SLRModel(nn.Module):
     def __init__(
         self,
         num_classes,
-        c2d_type,
+        backbone,
         conv_type,
         use_bn=False,
         hidden_size=1024,
@@ -40,9 +41,17 @@ class SLRModel(nn.Module):
         super(SLRModel, self).__init__()
 
         self.num_classes = num_classes
-        self.conv2d = getattr(models, c2d_type)(pretrained=True)
-        out_dim = self.conv2d.fc.in_features
-        self.conv2d.fc = Identity()
+
+        if backbone in ["resnet18", "resnet50"]:
+            self.backbone = getattr(models, backbone)(pretrained=True)
+            self.backbone.fc = Identity()
+            out_dim = self.backbone.fc.in_features
+        elif backbone in []:
+            self.backbone = create_model(
+                backbone, pretrained=True, num_classes=0, in_chans=3
+            )
+            out_dim = self.backbone.num_features
+
         self.conv1d = TemporalConv(
             input_size=out_dim,
             hidden_size=hidden_size,
