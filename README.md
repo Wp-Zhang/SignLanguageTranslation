@@ -84,7 +84,7 @@ In the project root folder, run cmd `python src/SLR/train.py --config configs/SL
 In the project root folder, run cmd `python src/SLR/eval.py --config configs/SLR/phoenix2014-res18.yaml --weights CHECKPOINT_FILE_PATH`
 
 --------
-#Transfomer Documentation:
+# Transfomer Documentation:
 
 Check under src/SLT
 
