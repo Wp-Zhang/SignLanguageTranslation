@@ -84,5 +84,9 @@ In the project root folder, run cmd `python src/SLR/train.py --config configs/SL
 In the project root folder, run cmd `python src/SLR/eval.py --config configs/SLR/phoenix2014-res18.yaml --weights CHECKPOINT_FILE_PATH`
 
 --------
+#Transfomer Documentation:
 
+Check under src/SLT
+
+----------
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
