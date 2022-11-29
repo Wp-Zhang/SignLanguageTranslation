@@ -43,10 +43,10 @@ python  train.py -data data/dgs -save_model model -keep_checkpoint 1 \
           -label_smoothing 0.1 -valid_steps 100 -save_checkpoint_steps 100 \
           -world_size 1 -gpu_ranks 0
 ```
-```
+
 The best pytorch saved model can be downloaded from [here](https://northeastern-my.sharepoint.com/:u:/g/personal/shravge_t_northeastern_edu/EVC4poJux_xMvBRCbFKs3cEBv6r_rrYPGDmS3Cdpuv9FPA?e=nmNb1M) for translation and evaluation
 
-```
+
 ### Inference
 ```
 python translate.py -model model [model2 model3 ...] -src data/phoenix2014T.test.gloss -output pred.txt -gpu 0 -replace_unk -beam_size 4
