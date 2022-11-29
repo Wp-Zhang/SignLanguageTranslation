@@ -86,7 +86,7 @@ In the project root folder, run cmd `python src/SLR/eval.py --config configs/SLR
 --------
 # Transfomer Documentation:
 
-Check under src/SLT
+Check under the folder --> src/SLT
 
 ----------
 <p><small>Project based on the <a target="_blank" href="https://drivendata.github.io/cookiecutter-data-science/">cookiecutter data science project template</a>. #cookiecutterdatascience</small></p>
