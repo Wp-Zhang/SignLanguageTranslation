@@ -34,6 +34,7 @@ class SLRModel(nn.Module):
         conv_type,
         use_bn=False,
         hidden_size=1024,
+        temporal_layer=2,
         gloss_dict=None,
         weight_norm=True,
         share_classifier=True,
@@ -46,7 +47,7 @@ class SLRModel(nn.Module):
             self.backbone = getattr(models, backbone)(pretrained=True)
             self.backbone.fc = Identity()
             out_dim = self.backbone.fc.in_features
-        elif backbone in ["swin_tiny_patch4_window7_224"]:
+        elif backbone in ["swin_tiny_patch4_window7_224","convnext_tiny_in22k",'mobilevit_xxs']:
             self.backbone = create_model(
                 backbone, pretrained=True, num_classes=0, in_chans=3
             )
@@ -65,7 +66,7 @@ class SLRModel(nn.Module):
             rnn_type="LSTM",
             input_size=hidden_size,
             hidden_size=hidden_size,
-            num_layers=2,
+            num_layers=temporal_layer,
             bidirectional=True,
         )
         if weight_norm:

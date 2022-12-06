@@ -1,0 +1,43 @@
+model_args:
+  num_classes: 1116
+  backbone: convnext_tiny_in22k
+  conv_type: 2
+  use_bn: True
+  hidden_size: 1024
+  temporal_layer_num: 3
+  # SMKD
+  weight_norm: True
+  share_classifier: True
+
+optimizer_args:
+  optimizer: Adam
+  base_lr: 0.0001
+  step: [10, 15, 16, 17, 18, 19, 20]
+  weight_decay: 0.0005
+  nesterov: False
+  loss_weights:
+    SeqCTC: 1.2
+    # VAC
+    ConvCTC: 1.0
+    # Dist: 10.0
+
+trainer_args:
+  accelerator: "gpu"
+  devices: 8
+  max_epochs: 40
+  precision: 16 # 32 or 16
+  ckpt_dir: output/SLR/Phoenix2014T-swin/ckpt
+
+evaluate_args:
+  eval_script_dir: src/SLR/models/evaluation
+  eval_output_dir: output/SLR/Phoenix2014T-swin/eval_result
+
+dataset_args:
+  dataset_name: Phoenix2014T
+  img_size: [256, 256]
+  raw_info_dir: data/SLR/raw/Phoenix2014T/annotations/manual
+  raw_img_dir: data/SLR/raw/Phoenix2014T/features/fullFrame-210x260px
+  processed_info_dir: data/SLR/processed/Phoenix2014T
+  processed_img_dir: data/SLR/processed/Phoenix2014T/features/fullFrame-256x256px
+  batch_size: 1
+  num_worker: 10

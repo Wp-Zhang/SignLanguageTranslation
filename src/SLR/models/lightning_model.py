@@ -18,6 +18,7 @@ class SLR_Lightning(LightningModule):
         conv_type,
         use_bn,
         hidden_size,
+        temporal_layer_num,
         weight_norm,
         share_classifier,
         # * Training args
@@ -44,6 +45,7 @@ class SLR_Lightning(LightningModule):
             conv_type,
             use_bn,
             hidden_size,
+            temporal_layer_num,
             gloss_dict,
             weight_norm,
             share_classifier,
