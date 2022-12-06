@@ -43,10 +43,10 @@ class SLRModel(nn.Module):
 
         self.num_classes = num_classes
 
-        if backbone in ["resnet18", "resnet50"]:
+        if backbone in ["resnet18", "resnet50",'resnet101']:
             self.backbone = getattr(models, backbone)(pretrained=True)
-            self.backbone.fc = Identity()
             out_dim = self.backbone.fc.in_features
+            self.backbone.fc = Identity()
         elif backbone in ["swin_tiny_patch4_window7_224","convnext_tiny_in22k",'mobilevit_xxs']:
             self.backbone = create_model(
                 backbone, pretrained=True, num_classes=0, in_chans=3
