@@ -14,10 +14,11 @@ class SLR_Lightning(LightningModule):
         self,
         # * Model args
         num_classes,
-        c2d_type,
+        backbone,
         conv_type,
         use_bn,
         hidden_size,
+        temporal_layer_num,
         weight_norm,
         share_classifier,
         # * Training args
@@ -25,7 +26,6 @@ class SLR_Lightning(LightningModule):
         base_lr,
         step,
         weight_decay,
-        start_epoch,
         nesterov,
         loss_weights,
         gloss_dict,
@@ -41,10 +41,11 @@ class SLR_Lightning(LightningModule):
         # * Define model
         self.model = SLRModel(
             num_classes,
-            c2d_type,
+            backbone,
             conv_type,
             use_bn,
             hidden_size,
+            temporal_layer_num,
             gloss_dict,
             weight_norm,
             share_classifier,
@@ -60,7 +61,6 @@ class SLR_Lightning(LightningModule):
         self.base_lr = base_lr
         self.step = step
         self.weight_decay = weight_decay
-        self.start_epoch = start_epoch
         self.nesterov = nesterov
         self.loss_weights = loss_weights
 
@@ -206,16 +206,10 @@ class SLR_Lightning(LightningModule):
                 #     python_evaluate=True,
                 #     triplet=True,
                 # )
-                self.log(
-                    f"{stage}_WER",
-                    conv_ret,
-                    # sync_dist=True,
-                    on_epoch=True,
-                )
+                self.log(f"{stage}_WER", conv_ret, prog_bar=True)
                 return {f"{stage}_WER": conv_ret}
             except:
                 pass
-                # self.log("Unexpected error:", sys.exc_info()[0], sync_dist=True)
 
     def validation_epoch_end(self, outputs):
         return self.eval_end(outputs, "dev")

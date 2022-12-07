@@ -2,6 +2,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchvision.models as models
+from timm import create_model
 
 from .modules import Decoder, BiLSTMLayer, TemporalConv
 
@@ -29,10 +30,11 @@ class SLRModel(nn.Module):
     def __init__(
         self,
         num_classes,
-        c2d_type,
+        backbone,
         conv_type,
         use_bn=False,
         hidden_size=1024,
+        temporal_layer=2,
         gloss_dict=None,
         weight_norm=True,
         share_classifier=True,
@@ -40,10 +42,19 @@ class SLRModel(nn.Module):
         super(SLRModel, self).__init__()
 
         self.num_classes = num_classes
-        self.conv2d = getattr(models, c2d_type)(pretrained=True)
-        self.conv2d.fc = Identity()
+
+        if backbone in ["resnet18", "resnet50",'resnet101']:
+            self.backbone = getattr(models, backbone)(pretrained=True)
+            out_dim = self.backbone.fc.in_features
+            self.backbone.fc = Identity()
+        elif backbone in ["swin_tiny_patch4_window7_224","convnext_tiny_in22k",'mobilevit_xxs']:
+            self.backbone = create_model(
+                backbone, pretrained=True, num_classes=0, in_chans=3
+            )
+            out_dim = self.backbone.num_features
+
         self.conv1d = TemporalConv(
-            input_size=512,
+            input_size=out_dim,
             hidden_size=hidden_size,
             conv_type=conv_type,
             use_bn=use_bn,
@@ -55,7 +66,7 @@ class SLRModel(nn.Module):
             rnn_type="LSTM",
             input_size=hidden_size,
             hidden_size=hidden_size,
-            num_layers=2,
+            num_layers=temporal_layer,
             bidirectional=True,
         )
         if weight_norm:
@@ -87,7 +98,7 @@ class SLRModel(nn.Module):
                 for idx, lgt in enumerate(len_x)
             ]
         )
-        x = self.conv2d(x)
+        x = self.backbone(x)
         x = torch.cat(
             [
                 pad(x[sum(len_x[:idx]) : sum(len_x[: idx + 1])], len_x[0])

@@ -72,8 +72,8 @@ if __name__ == "__main__":
 
     checkpoint_callback = ModelCheckpoint(
         dirpath=trainer_cfg.ckpt_dir,
-        filename=dataset_cfg.dataset_name + "-SLR-{epoch:02d}-{dev_WER:.2f}",
-        monitor="dev_WER",
+        filename=dataset_cfg.dataset_name + "-SLR-{epoch:02d}-{dev_loss:.2f}",
+        monitor="dev_loss",
         mode="min",
         save_last=True,
     )
@@ -82,8 +82,9 @@ if __name__ == "__main__":
         devices=trainer_cfg.devices,
         max_epochs=trainer_cfg.max_epochs,
         sync_batchnorm=True,
-        strategy="ddp_find_unused_parameters_false",
-        num_nodes=1,
+        strategy="ddp_find_unused_parameters_false"
+        if trainer_cfg.devices > 1
+        else None,
         precision=trainer_cfg.precision,
         callbacks=[checkpoint_callback],
         logger=wandb_logger,

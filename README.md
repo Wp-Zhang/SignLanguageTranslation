@@ -56,19 +56,17 @@ Project Organization
 
 ### Data Preprocessing
 
-1. Download **Phoenix-2014** dataset and extract it to `data/SLR/raw/`, rename the data folder as `Phoenix2014`. The directory structure should be like:
+1. Download **Phoenix-2014T** dataset and extract it to `data/SLR/raw/`, rename the data folder as `Phoenix2014T`. The directory structure should be like:
 
 ```
-└── Phoenix2014
+└── Phoenix2014T
     ├── annotations
     ├── evaluation
     ├── features
-    ├── models
-    ├── LICENSE.txt
-    └── README
+    └── models
 ```
 
-2. In the project root folder, run cmd `python src/SLR/prepare_data.py --config configs/SLR/phoenix2014-res18.yaml`
+2. In the project root folder, run cmd `python src/SLR/prepare_data.py --config configs/SLR/phoenix2014T-res18.yaml`
 
 
 <!-- ### Download Model Weights

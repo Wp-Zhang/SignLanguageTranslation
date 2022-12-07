@@ -106,15 +106,6 @@ class VideoDataset(Dataset):
     def __len__(self):
         return self.annotations.shape[0]
 
-    # def record_time(self):
-    #     self.cur_time = time.time()
-    #     return self.cur_time
-
-    # def split_time(self):
-    #     split_time = time.time() - self.cur_time
-    #     self.record_time()
-    #     return split_time
-
 
 class VideoDataModule(LightningDataModule):
     def __init__(self, info_dir, img_dir, gloss_dict, batch_size, num_worker=1, **args):
@@ -150,7 +141,7 @@ class VideoDataModule(LightningDataModule):
     def train_dataloader(self):
         dataset = self.datasets["fit"]
         return DataLoader(
-            dataset=self.datasets["fit"],
+            dataset=dataset,
             batch_size=self.batch_size,
             shuffle=True,
             drop_last=True,
@@ -161,7 +152,7 @@ class VideoDataModule(LightningDataModule):
     def val_dataloader(self):
         dataset = self.datasets["validate"]
         return DataLoader(
-            dataset=self.datasets["validate"],
+            dataset=dataset,
             batch_size=self.batch_size,
             shuffle=False,
             drop_last=False,
@@ -172,7 +163,7 @@ class VideoDataModule(LightningDataModule):
     def test_dataloader(self):
         dataset = self.datasets["test"]
         return DataLoader(
-            dataset=self.datasets["test"],
+            dataset=dataset,
             batch_size=self.batch_size,
             shuffle=False,
             drop_last=False,
