@@ -1,9 +1,27 @@
 Sign Language Translation
 ==============================
 
-Capstone Project of MSDS at NEU
+## Summary
 
-Project Organization
+With the aid of sign language, people with various forms of hearing impairment can interact with others in society. Most deaf individuals communicate with one another in sign language, which serves as both the primary bonding agent and a symbol of identification for community members.
+
+Sign Language Translation consists of two parts, continuous sign language recognition and translation as shown in the figure. We convert a sign language video into continuous sign language vocabulary first and then translate these words into a normal sentence.
+
+![slt](reports/figures/slt.png)
+
+The goal of vision-based CSLR is to automatically identify signs from videos. We adopted a network architecture made up of a feature extractor and an alignment module. Each frame's visual information is abstracted by the feature extractor, and the alignment module looks for potential alignments between the visual features and the related labeling. By optimizing the probability of each possible alignment, a Connectionist Temporal Classification (CTC) is employed to align the prediction and labeling.
+
+The main structure of the translation part is harnessed by transformer. For translation, we used a transformer in which the model contains a double layer encoder and decoder. This type of transformer can accomplish parallelization and it can achieve state-of-the-art results in the translation characteristic.
+
+The table below shows the summary of the results:
+
+|     **Methods**                                   |     **Model**                          |     **Metrics**     |     **Score**     |
+|-----------------------------------------------|------------------------------------|-----------------|---------------|
+|     Continuous Sign   Language Recognition    |     ResNet50                       |     WER         |     21.6%     |
+|     Translation                               |     2-layer   Transformer          |     BLEU   4    |     22.59%    |
+|     Transfer Learning                         |     Same as translation   model    |     BLEU 3      |     30.87%    |
+
+## Project Organization
 ------------
 
     ├── LICENSE
