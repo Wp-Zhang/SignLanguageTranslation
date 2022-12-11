@@ -1,5 +1,4 @@
-Sign Language Translation
-==============================
+![logo](reports/figures/logo.png)
 
 ## Summary
 
